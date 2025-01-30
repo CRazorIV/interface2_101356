@@ -77,6 +77,17 @@
             const sleepSelect = document.getElementById('sleepSelect');
             const statusText = sleepSelect.value === 'deactivate' ? 'Inactief (Slaapstand)' : 'Actief';
 
+            // Haal de laatste beweging op uit de form als die er is
+            const actionSelect = document.getElementById('actionSelect');
+            const detailsInput = document.getElementById('detailsInput');
+            let movementText = '';
+            
+            if (actionSelect.value === 'move' && detailsInput.value) {
+                movementText = '<p>🚀 Laatste beweging: ' + detailsInput.value + '</p>';
+            } else if (data.lastMovement) {
+                movementText = '<p>🚀 Laatste beweging: ' + data.lastMovement + '</p>';
+            }
+
             document.getElementById('statusDisplay').innerHTML = 
                 '<h3>Huidige Status:</h3>' +
                 '<p>🔋 Batterij: ' + data.batteryPercentage + '%</p>' +
@@ -84,7 +95,7 @@
                 '<p>📡 Actieve Sensoren: ' + data.activeSensors.join(', ') + '</p>' +
                 '<p>💎 Gevonden Grondstoffen: ' + data.foundResources.join(', ') + '</p>' +
                 '<p>💤 Status: ' + statusText + '</p>' +
-                (data.lastMovement ? '<p>🚀 Laatste beweging: ' + data.lastMovement + '</p>' : '');
+                movementText;
         }
 
         async function checkStatus() {
