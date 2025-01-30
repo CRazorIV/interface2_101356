@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ruimtevoertuig Besturing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        
+        h1, h2 {
+            color: #1a237e;
+            text-align: center;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        button {
+            background-color: #1a237e;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #283593;
+        }
+
+        #statusDisplay, #actionResponse {
+            margin-top: 20px;
+            padding: 20px;
+            background: #e3f2fd;
+            border-radius: 8px;
+        }
+
+        .api-info {
+            background: #fff3e0;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Ruimtevoertuig Besturing</h1>
+    
+    <div class="container">
+        <h2>Besturing</h2>
+        <form id="actionForm">
+            <select name="action" required>
+                <option value="">Selecteer een actie...</option>
+                <option value="move">Bewegen</option>
+                <option value="sensor">Sensor beheren</option>
+                <option value="sleep">Slaapstand</option>
+            </select>
+            <input type="text" name="details" placeholder="Details (richting/sensor naam)">
+            <button type="submit">Uitvoeren</button>
+        </form>
+        <div id="actionResponse"></div>
+    </div>
+
+    <div class="container">
+        <h2>Status</h2>
+        <button onclick="checkStatus()">Ververs Status</button>
+        <div id="statusDisplay"></div>
+    </div>
+
+    <div class="container api-info">
+        <h2>API Informatie</h2>
+        <h3>Beschikbare endpoints:</h3>
+        <p><strong>GET /status</strong> - Bekijk voertuigstatus</p>
+        <p><strong>POST /action</strong> - Stuur commando's naar voertuig</p>
+        <p>Test de API direct:</p>
+        <code>curl http://localhost:3000/status</code>
+    </div>
+
+    <script>
+        // Status ophalen
+        async function checkStatus() {
+            try {
+                const response = await fetch('/status');
+                const data = await response.json();
+                document.getElementById('statusDisplay').innerHTML = 
+                    '<h3>Huidige Status:</h3>' +
+                    '<p>🔋 Batterij: ' + data.batteryPercentage + '%</p>' +
+                    '<p>🌡️ Temperatuur: ' + data.temperature + '°C</p>' +
+                    '<p>📡 Actieve Sensoren: ' + data.activeSensors.join(', ') + '</p>' +
+                    '<p>💎 Gevonden Grondstoffen: ' + data.foundResources.join(', ') + '</p>';
+            } catch (error) {
+                document.getElementById('statusDisplay').innerHTML = 
+                    '<p style="color: red;">Error bij ophalen status: ' + error.message + '</p>';
+            }
+        }
+
+        // Form submission
+        document.getElementById('actionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            try {
+                const response = await fetch('/action', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: formData.get('action'),
+                        details: formData.get('details')
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('actionResponse').innerHTML = 
+                    '<p style="color: ' + (data.success ? 'green' : 'red') + '">' +
+                    data.message + '</p>';
+                if (data.success) {
+                    checkStatus(); // Update status na succesvolle actie
+                }
+            } catch (error) {
+                document.getElementById('actionResponse').innerHTML = 
+                    '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        });
+
+        // Initial status check
+        checkStatus();
+    </script>
+</body>
+</html>
