@@ -2,149 +2,140 @@
 <html>
 <head>
     <title>Ruimtevoertuig Besturing</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-            background-color: #f0f2f5;
-        }
-        
-        h1, h2 {
-            color: #1a237e;
-            text-align: center;
-        }
-        
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        
-        select, input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        
-        button {
-            background-color: #1a237e;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            font-size: 16px;
-            transition: background-color 0.3s;
-        }
-        
-        button:hover {
-            background-color: #283593;
-        }
-
-        #statusDisplay, #actionResponse {
-            margin-top: 20px;
-            padding: 20px;
-            background: #e3f2fd;
-            border-radius: 8px;
-        }
-
-        .api-info {
-            background: #fff3e0;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 20px;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <h1>🚀 Ruimtevoertuig Besturing</h1>
     
     <div class="container">
-        <h2>Besturing</h2>
+        <h2>Actie Uitvoeren</h2>
         <form id="actionForm">
-            <select name="action" required>
-                <option value="">Selecteer een actie...</option>
+            <select name="action" id="actionSelect" required>
+                <option value="">Kies een actie...</option>
                 <option value="move">Bewegen</option>
                 <option value="sensor">Sensor beheren</option>
                 <option value="sleep">Slaapstand</option>
             </select>
-            <input type="text" name="details" placeholder="Details (richting/sensor naam)">
+
+            <!-- Dropdown voor slaapstand -->
+            <select name="details" id="sleepSelect" style="display: none;">
+                <option value="">Kies slaapstand...</option>
+                <option value="activate">Activeren</option>
+                <option value="deactivate">Deactiveren</option>
+            </select>
+
+            <!-- Input voor beweging en sensoren -->
+            <input type="text" name="details" id="detailsInput" placeholder="Details (bijv: vooruit, temperatuur)" required>
+            
             <button type="submit">Uitvoeren</button>
         </form>
         <div id="actionResponse"></div>
     </div>
 
     <div class="container">
-        <h2>Status</h2>
-        <button onclick="checkStatus()">Ververs Status</button>
+        <h2>Voertuig Status</h2>
+        <button onclick="checkStatus()">Status Verversen</button>
         <div id="statusDisplay"></div>
     </div>
 
     <div class="container api-info">
-        <h2>API Informatie</h2>
-        <h3>Beschikbare endpoints:</h3>
-        <p><strong>GET /status</strong> - Bekijk voertuigstatus</p>
-        <p><strong>POST /action</strong> - Stuur commando's naar voertuig</p>
-        <p>Test de API direct:</p>
+        <h2>System Interface</h2>
+        <h3>Available Endpoints:</h3>
+        <p><strong>GET /status</strong> - Monitor Vehicle Status</p>
+        <p><strong>POST /action</strong> - Execute Vehicle Commands</p>
+        <p>Direct Interface Test:</p>
         <code>curl http://localhost:3000/status</code>
     </div>
 
     <script>
-        // Status ophalen
+        // Wissel tussen input velden op basis van actie
+        document.getElementById('actionSelect').addEventListener('change', function(e) {
+            const sleepSelect = document.getElementById('sleepSelect');
+            const detailsInput = document.getElementById('detailsInput');
+            
+            if (e.target.value === 'sleep') {
+                sleepSelect.style.display = 'block';
+                detailsInput.style.display = 'none';
+                detailsInput.required = false;
+                sleepSelect.required = true;
+            } else {
+                sleepSelect.style.display = 'none';
+                detailsInput.style.display = 'block';
+                detailsInput.required = true;
+                sleepSelect.required = false;
+            }
+        });
+
+        // Auto-refresh functie
+        function startAutoRefresh() {
+            // Check status elke 2 seconden
+            setInterval(checkStatus, 2000);
+        }
+
+        async function updateStatus(data) {
+            // Bepaal status tekst direct van de form input
+            const sleepSelect = document.getElementById('sleepSelect');
+            const statusText = sleepSelect.value === 'deactivate' ? 'Inactief (Slaapstand)' : 'Actief';
+
+            document.getElementById('statusDisplay').innerHTML = 
+                '<h3>Huidige Status:</h3>' +
+                '<p>🔋 Batterij: ' + data.batteryPercentage + '%</p>' +
+                '<p>🌡️ Temperatuur: ' + data.temperature + '°C</p>' +
+                '<p>📡 Actieve Sensoren: ' + data.activeSensors.join(', ') + '</p>' +
+                '<p>💎 Gevonden Grondstoffen: ' + data.foundResources.join(', ') + '</p>' +
+                '<p>💤 Status: ' + statusText + '</p>' +
+                (data.lastMovement ? '<p>🚀 Laatste beweging: ' + data.lastMovement + '</p>' : '');
+        }
+
         async function checkStatus() {
             try {
                 const response = await fetch('/status');
                 const data = await response.json();
-                document.getElementById('statusDisplay').innerHTML = 
-                    '<h3>Huidige Status:</h3>' +
-                    '<p>🔋 Batterij: ' + data.batteryPercentage + '%</p>' +
-                    '<p>🌡️ Temperatuur: ' + data.temperature + '°C</p>' +
-                    '<p>📡 Actieve Sensoren: ' + data.activeSensors.join(', ') + '</p>' +
-                    '<p>💎 Gevonden Grondstoffen: ' + data.foundResources.join(', ') + '</p>';
+                updateStatus(data);
             } catch (error) {
                 document.getElementById('statusDisplay').innerHTML = 
-                    '<p style="color: red;">Error bij ophalen status: ' + error.message + '</p>';
+                    '<p class="error">Error bij ophalen status: ' + error.message + '</p>';
             }
         }
 
-        // Form submission
         document.getElementById('actionForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const formData = new FormData(e.target);
+            const action = document.getElementById('actionSelect').value;
+            let details;
+
+            if (action === 'sleep') {
+                details = document.getElementById('sleepSelect').value;
+            } else {
+                details = document.getElementById('detailsInput').value;
+            }
+
             try {
                 const response = await fetch('/action', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        action: formData.get('action'),
-                        details: formData.get('details')
-                    })
+                    body: JSON.stringify({ action, details })
                 });
                 const data = await response.json();
                 document.getElementById('actionResponse').innerHTML = 
-                    '<p style="color: ' + (data.success ? 'green' : 'red') + '">' +
+                    '<p class="' + (data.success ? 'success' : 'error') + '">' +
                     data.message + '</p>';
-                if (data.success) {
-                    checkStatus(); // Update status na succesvolle actie
+                
+                if (data.success && data.vehicleStatus) {
+                    updateStatus(data.vehicleStatus);
                 }
             } catch (error) {
                 document.getElementById('actionResponse').innerHTML = 
-                    '<p style="color: red;">Error: ' + error.message + '</p>';
+                    '<p class="error">Error: ' + error.message + '</p>';
             }
         });
 
-        // Initial status check
-        checkStatus();
+        // Start auto-refresh wanneer de pagina laadt
+        document.addEventListener('DOMContentLoaded', () => {
+            checkStatus(); // Initial check
+            startAutoRefresh(); // Start auto-refresh
+        });
     </script>
 </body>
 </html>
